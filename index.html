@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Our Heritage Homes Survey: Property & Business Operations</title>
+
+  <!-- Tailwind Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: ['class', '[data-theme="dark"]'],
+      theme: {
+        extend: {
+          colors: {
+            'indigo-due': '#123e55',
+            'metallic-gold': '#d0ac49',
+          },
+          fontFamily: {
+            cinzel: ['Cinzel', 'serif'],
+            montserrat: ['Montserrat', 'system-ui', 'Segoe UI', 'Roboto', 'sans-serif'],
+          },
+          boxShadow: {
+            soft: '0 8px 30px rgba(0,0,0,.06)'
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind component layer for reusable classes -->
+  <style type="text/tailwindcss">
+    @layer base {
+      :root { color-scheme: light; }
+      :root[data-theme="dark"] { color-scheme: dark; }
+      html, body { height: 100%; }
+      body { @apply font-montserrat bg-gray-50 text-gray-800 antialiased; }
+    }
+
+    @layer components {
+      .card { @apply bg-white dark:bg-gray-900 border border-gray-200/60 dark:border-gray-800 rounded-2xl shadow-soft; }
+      .section { @apply card p-6 md:p-8; }
+      .legend-title { @apply text-2xl md:text-3xl font-bold text-indigo-due font-cinzel mb-6 border-b border-indigo-due/20 pb-3; }
+
+      .form-label { @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5; }
+      .form-hint { @apply mt-1 text-sm text-gray-500; }
+
+      .field { position: relative; margin: 0 0 1.5rem 0; }
+      .input, .select { @apply block w-full rounded-xl border border-gray-300/90 bg-white dark:bg-gray-950/60 px-4 py-3 text-gray-900 dark:text-gray-100 placeholder-gray-400 transition focus:outline-none focus:ring-4 focus:ring-indigo-due/20 focus:border-indigo-due; }
+      
+      .textarea { @apply input w-full min-h-[112px] resize-y; }
+      
+      .choice-row { @apply flex flex-wrap gap-3; }
+      .choice { @apply inline-flex items-center gap-3 rounded-lg border border-gray-300/70 px-4 py-3 hover:border-indigo-due/60 transition cursor-pointer; }
+      .choice input { @apply h-4 w-4 text-indigo-due focus:ring-indigo-due; }
+
+      .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 font-semibold transition shadow-soft focus:outline-none focus:ring-4 focus:ring-indigo-due/25 disabled:opacity-50 disabled:cursor-not-allowed; }
+      .btn-primary { @apply bg-indigo-due text-white hover:brightness-110; }
+      .btn-muted { @apply bg-gray-200 text-gray-800 hover:bg-gray-300; }
+
+      .progress-outer { @apply w-full h-2.5 rounded-full bg-gray-200 dark:bg-gray-800; }
+      .progress-inner { @apply h-2.5 rounded-full bg-indigo-due transition-all duration-500; }
+      
+      .with-suffix { @apply relative inline-flex items-center; }
+      .with-suffix > input { @apply input pr-8; }
+      .with-suffix > span { @apply absolute right-4 text-gray-500 pointer-events-none; }
+
+      .step { @apply section hidden; }
+      .step.active { @apply block; }
+    }
+  </style>
+  <style>
+    .max-w-3xl { max-width: 60rem !important; }
+  </style>
+</head>
+
+<body>
+  <main id="surveyRoot" class="mx-auto max-w-3xl p-4 sm:p-6 lg:p-8">
+    <!-- Header -->
+    <header class="text-center mb-8">
+      <h1 class="text-4xl sm:text-5xl font-bold text-indigo-due font-cinzel tracking-wide">Our Heritage Homes</h1>
+      <p class="text-lg text-gray-600 mt-2">Property & Business Operations Survey</p>
+    </header>
+
+    <!-- Incentives / notice -->
+    <aside id="incentivesNotice" class="card border-l-4 border-metallic-gold text-indigo-due p-6 mb-8">
+      <h2 class="font-semibold text-lg">A Thank You For Your Participation</h2>
+      <p class="mt-2">As a thank you for participating in our survey, enjoy these exclusive benefits:</p>
+      <ul class="mt-3 list-disc list-inside space-y-1">
+        <li><strong>Early Access:</strong> Receive the comprehensive survey report before its public release.</li>
+        <li><strong>Exclusive Webinar:</strong> Join our private webinar for an in-depth discussion of the survey's key findings.</li>
+      </ul>
+    </aside>
+
+    <!-- Stepper / Progress -->
+    <section class="mb-6" aria-label="Progress">
+      <div class="flex items-center justify-between mb-2">
+        <span id="progressText" class="text-sm font-medium text-indigo-due">Step 1 of 5</span>
+        <span id="progressPct" class="text-sm font-medium text-indigo-due">20%</span>
+      </div>
+      <div class="progress-outer" aria-hidden="true">
+        <div id="progressBar" class="progress-inner" style="width:20%"></div>
+      </div>
+      <p id="progressSr" class="sr-only" aria-live="polite">Step 1 of 5 (20%)</p>
+    </section>
+    
+    <!-- Error summary (hidden until needed) -->
+    <div id="errorSummary" class="hidden section border border-red-200 mb-6" role="alert" aria-labelledby="errorSummaryTitle">
+      <h3 id="errorSummaryTitle" class="text-red-700 font-semibold mb-2">Please review the highlighted fields</h3>
+      <ul id="errorList" class="list-disc list-inside text-red-700 space-y-1"></ul>
+    </div>
+
+
+    <!-- Form -->
+    <form id="surveyForm" class="space-y-8" novalidate>
+        <!-- Section A: Property & Contact Information -->
+        <fieldset class="step active" aria-describedby="a-desc">
+            <legend class="legend-title">Section A: Contact Information</legend>
+            <p id="a-desc" class="form-hint mb-6">We’ll use this to understand your context. Required items must be completed to continue.</p>
+            <div class="space-y-6">
+                <div class="field" data-field>
+                    <label for="email" class="form-label">Email Address:</label>
+                    <input type="email" id="email" name="email" class="input" required autocomplete="email">
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="field" data-field>
+                        <label for="country" class="form-label">Country:</label>
+                        <input type="text" id="country" name="country" class="input" required autocomplete="country-name">
+                    </div>
+                    <div class="field" data-field>
+                        <label for="city" class="form-label">City:</label>
+                        <input type="text" id="city" name="city" class="input" required autocomplete="address-level2">
+                    </div>
+                </div>
+                <div class="field" data-field>
+                    <label for="property_name" class="form-label">Name of the Property:</label>
+                    <input type="text" id="property_name" name="property_name" class="input" required autocomplete="organization">
+                </div>
+                <div class="field" data-field>
+                    <label for="role" class="form-label">Your Role in the Organisation:</label>
+                    <input type="text" id="role" name="role" class="input" required autocomplete="organization-title">
+                </div>
+                <div class="field" data-field>
+                    <span class="form-label">Property Category:</span>
+                     <div class="choice-row">
+                        <label class="choice"><input type="radio" name="property_category" value="Stay" required><span>Stay</span></label>
+                        <label class="choice"><input type="radio" name="property_category" value="Rent"><span>Rent</span></label>
+                        <label class="choice"><input type="radio" name="property_category" value="Others"><span>Others</span></label>
+                    </div>
+                </div>
+                <div class="field" data-field>
+                    <span class="form-label">Is this a heritage property?</span>
+                    <div class="choice-row">
+                        <label class="choice"><input type="radio" name="is_heritage" value="Yes" required><span>Yes</span></label>
+                        <label class="choice"><input type="radio" name="is_heritage" value="No"><span>No</span></label>
+                    </div>
+                </div>
+                <div class="field" data-field>
+                    <label for="property_age" class="form-label">If yes, what is the approximate age of the property?</label>
+                    <input type="text" id="property_age" name="property_age" class="input" placeholder="e.g., 150 years" disabled>
+                </div>
+            </div>
+        </fieldset>
+
+        <!-- Section B: Business Performance & Outlook -->
+        <fieldset class="step" aria-describedby="b-desc">
+            <legend class="legend-title">Section B: Business Performance</legend>
+             <p id="b-desc" class="form-hint mb-6">Let's look at your property's performance and outlook.</p>
+            <div class="space-y-6">
+                <div class="field" data-field>
+                    <label for="performance_2025" class="form-label">Compared to 2024, how did your overall business perform in 2025?</label>
+                    <select id="performance_2025" name="performance_2025" class="select">
+                        <option value="" disabled selected>Please select an option</option>
+                        <option value="up_20_plus">Sales went up by more than 20%</option>
+                        <option value="up_11_20">Sales went up by 11% to 20%</option>
+                        <option value="up_5_10">Sales went up by 5% to 10%</option>
+                        <option value="same">Remained the same / no significant change</option>
+                        <option value="down_5_plus">Went down by 5% or more</option>
+                        <option value="other">Others (please specify)</option>
+                    </select>
+                </div>
+                <div class="field" data-field>
+                    <label for="optimism_2025" class="form-label">How optimistic are you about your business performance this year (2025)?</label>
+                    <select id="optimism_2025" name="optimism_2025" class="select">
+                        <option value="" disabled selected>Please select an option</option>
+                        <option value="very_optimistic">Very optimistic</option>
+                        <option value="somewhat_optimistic">Somewhat optimistic</option>
+                        <option value="neutral">Neutral</option>
+                        <option value="uncertain">Uncertain</option>
+                    </select>
+                </div>
+                <div class="field" data-field>
+                    <span class="form-label">What is the average occupancy rate at your property?</span>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="occupancy_peak" class="form-label">During peak periods:</label>
+                            <div class="with-suffix"><input type="number" id="occupancy_peak" name="occupancy_peak" class="input w-28" min="0" max="100"><span>%</span></div>
+                        </div>
+                        <div>
+                            <label for="occupancy_nonpeak" class="form-label">During non-peak periods:</label>
+                            <div class="with-suffix"><input type="number" id="occupancy_nonpeak" name="occupancy_nonpeak" class="input w-28" min="0" max="100"><span>%</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </fieldset>
+
+        <!-- Section C: Marketing & Bookings -->
+        <fieldset class="step" aria-describedby="c-desc">
+            <legend class="legend-title">Section C: Marketing & Bookings</legend>
+            <p id="c-desc" class="form-hint mb-6">Tell us about how you attract and manage bookings.</p>
+            <div class="space-y-6">
+                <div class="field" data-field>
+                    <span class="form-label">From which channels do you receive the majority of your bookings?</span>
+                    <p class="form-hint mb-4">Estimate the percentage for each. <span id="channelTotal">Current total: 0%</span></p>
+                    <div class="space-y-3">
+                        <div class="grid grid-cols-[8rem_1fr] items-center gap-4"><div class="with-suffix"><input type="number" name="channel_direct" class="input" min="0" max="100"><span>%</span></div><label>Direct Bookings (via phone call or email)</label></div>
+                        <div class="grid grid-cols-[8rem_1fr] items-center gap-4"><div class="with-suffix"><input type="number" name="channel_website" class="input" min="0" max="100"><span>%</span></div><label>Property’s official website</label></div>
+                        <div class="grid grid-cols-[8rem_1fr] items-center gap-4"><div class="with-suffix"><input type="number" name="channel_social" class="input" min="0" max="100"><span>%</span></div><label>Social Media (Facebook, Instagram, etc.)</label></div>
+                        <div class="grid grid-cols-[8rem_1fr] items-center gap-4"><div class="with-suffix"><input type="number" name="channel_ota" class="input" min="0" max="100"><span>%</span></div><label>Online Travel Agents (OTAs)</label></div>
+                        <div class="grid grid-cols-[8rem_1fr] items-center gap-4"><div class="with-suffix"><input type="number" name="channel_walkin" class="input" min="0" max="100"><span>%</span></div><label>Walk-ins</label></div>
+                        <div class="grid grid-cols-[8rem_1fr] items-center gap-4"><div class="with-suffix"><input type="number" name="channel_other_perc" class="input" min="0" max="100"><span>%</span></div><input type="text" name="channel_other_spec" placeholder="Others, please specify" class="input"></div>
+                    </div>
+                </div>
+                 <div class="field" data-field>
+                    <span class="form-label">Which channels do you find most effective for marketing? (Rank top three, 1 = most effective)</span>
+                     <div class="space-y-3">
+                        <div class="flex items-center gap-4"><input type="number" min="1" max="3" name="rank_marketing[facebook]" class="input w-20 text-center"><span>Facebook</span></div>
+                        <div class="flex items-center gap-4"><input type="number" min="1" max="3" name="rank_marketing[instagram]" class="input w-20 text-center"><span>Instagram</span></div>
+                        <div class="flex items-center gap-4"><input type="number" min="1" max="3" name="rank_marketing[website]" class="input w-20 text-center"><span>Property’s official website</span></div>
+                        <div class="flex items-center gap-4"><input type="number" min="1" max="3" name="rank_marketing[tiktok]" class="input w-20 text-center"><span>TikTok</span></div>
+                        <div class="flex items-center gap-4"><input type="number" min="1" max="3" name="rank_marketing[email]" class="input w-20 text-center"><span>Email Marketing / Newsletters</span></div>
+                        <div class="flex items-center gap-4"><input type="number" min="1" max="3" name="rank_marketing[print]" class="input w-20 text-center"><span>Print / Local Advertising</span></div>
+                        <div class="grid grid-cols-[5rem_1fr] items-center gap-4"><input type="number" min="1" max="3" name="rank_marketing_other_rank" class="input w-20 text-center"><input type="text" name="rank_marketing_other_value" placeholder="Others, please specify" class="input"></div>
+                    </div>
+                </div>
+                 <div class="field" data-field>
+                    <span class="form-label">When promoting your property, what key messages do you focus on? (Select all that apply)</span>
+                    <div class="space-y-2">
+                        <label class="choice"><input type="checkbox" name="promo_message[]" value="history"><span>Historical significance of the property</span></label>
+                        <label class="choice"><input type="checkbox" name="promo_message[]" value="quality"><span>Proven quality of service and amenities</span></label>
+                        <label class="choice"><input type="checkbox" name="promo_message[]" value="location"><span>Location and accessibility</span></label>
+                        <label class="choice"><input type="checkbox" name="promo_message[]" value="attractions"><span>On-site attractions and activities</span></label>
+                        <label class="choice"><input type="checkbox" name="promo_message[]" value="value"><span>Value for money</span></label>
+                        <div class="flex flex-wrap items-center gap-3 mt-2">
+                            <label class="choice"><input type="checkbox" id="promo_other_check"> <span>Other</span></label>
+                            <input type="text" name="promo_message_other" placeholder="Please specify" class="input w-full sm:max-w-md" disabled>
+                        </div>
+                    </div>
+                </div>
+                 <div class="field" data-field id="targetGroup">
+                    <span class="form-label">Which traveller groups are you most keen to target this year? (Select top three)</span>
+                    <div class="space-y-2">
+                        <label class="choice"><input type="checkbox" name="target_group[]" value="leisure"><span>Leisure travellers</span></label>
+                        <label class="choice"><input type="checkbox" name="target_group[]" value="business"><span>Business travellers</span></label>
+                        <label class="choice"><input type="checkbox" name="target_group[]" value="adventure"><span>Adventure travellers</span></label>
+                        <label class="choice"><input type="checkbox" name="target_group[]" value="group"><span>Group/Family travellers</span></label>
+                        <label class="choice"><input type="checkbox" name="target_group[]" value="heritage"><span>Heritage enthusiasts</span></label>
+                        <div class="flex flex-wrap items-center gap-3 mt-2">
+                            <label class="choice"><input type="checkbox" id="target_other_check"> <span>Other</span></label>
+                            <input type="text" name="target_group_other" placeholder="Please specify" class="input w-full sm:max-w-md" disabled>
+                        </div>
+                    </div>
+                    <p class="form-hint" id="targetHint">0 of 3 selected</p>
+                </div>
+            </div>
+        </fieldset>
+
+        <!-- Section D: Challenges & Support Needed -->
+        <fieldset class="step" aria-describedby="d-desc">
+            <legend class="legend-title">Section D: Challenges & Support</legend>
+            <p id="d-desc" class="form-hint mb-6">Help us understand the challenges you face and support you need.</p>
+            <div class="space-y-6">
+                <div class="field" data-field id="challengesGroup">
+                    <span class="form-label">What are the top challenges you face in preserving, maintaining, and managing your property? (Select top three)</span>
+                    <div class="space-y-2">
+                        <label class="choice"><input type="checkbox" name="challenges[]" value="financial"><span>Financial support/assistance</span></label>
+                        <label class="choice"><input type="checkbox" name="challenges[]" value="technical"><span>Technical guidance/assistance</span></label>
+                        <label class="choice"><input type="checkbox" name="challenges[]" value="sourcing_contractors"><span>Sourcing heritage contractors/experts</span></label>
+                        <label class="choice"><input type="checkbox" name="challenges[]" value="sourcing_vendors"><span>Sourcing heritage vendors and partners</span></label>
+                        <label class="choice"><input type="checkbox" name="challenges[]" value="marketing"><span>Marketing and promotion</span></label>
+                         <div class="flex flex-wrap items-center gap-3 mt-2">
+                            <label class="choice"><input type="checkbox" id="challenge_other_check"> <span>Other</span></label>
+                            <input type="text" name="challenges_other" placeholder="Please specify" class="input w-full sm:max-w-md" disabled>
+                        </div>
+                    </div>
+                    <p class="form-hint" id="challengeHint">0 of 3 selected</p>
+                </div>
+                 <div class="field" data-field>
+                    <span class="form-label">Do you currently offer curated activities or experiences to complement your accommodation?</span>
+                    <div class="space-y-2">
+                        <label class="choice"><input type="radio" name="curated_activities" value="Yes"> <span>Yes</span></label>
+                        <label class="choice"><input type="radio" name="curated_activities" value="No"> <span>No</span></label>
+                        <div class="flex flex-wrap items-center gap-3">
+                          <label class="choice"><input type="radio" name="curated_activities" value="Other" id="curated_activities_other_radio"> <span>Other</span></label>
+                          <input name="curated_activities_other_value" type="text" class="input w-full sm:max-w-md" placeholder="Please specify" disabled>
+                        </div>
+                    </div>
+                </div>
+                 <div class="field" data-field>
+                    <span class="form-label">What type of marketing support would be most beneficial for your business? (Select all that apply)</span>
+                    <div class="space-y-2">
+                        <label class="choice"><input type="checkbox" name="support[]" value="content_social"><span>Content development for social media</span></label>
+                        <label class="choice"><input type="checkbox" name="support[]" value="content_website"><span>Content development for our corporate website</span></label>
+                        <label class="choice"><input type="checkbox" name="support[]" value="media_buying"><span>Media buying and optimisation support</span></label>
+                        <label class="choice"><input type="checkbox" name="support[]" value="copywriting"><span>Copywriting for promotional materials</span></label>
+                         <div class="flex flex-wrap items-center gap-3 mt-2">
+                            <label class="choice"><input type="checkbox" id="support_other_check"> <span>Other</span></label>
+                            <input type="text" name="support_other" placeholder="Please specify" class="input w-full sm:max-w-md" disabled>
+                        </div>
+                    </div>
+                </div>
+                 <div class="field" data-field>
+                    <label for="ota_satisfaction" class="form-label">If you use Online Travel Agents (OTAs), how satisfied are you with their service?</label>
+                    <select id="ota_satisfaction" name="ota_satisfaction" class="select">
+                        <option value="" disabled selected>Please select an option</option>
+                        <option value="very_satisfied">Very Satisfied</option>
+                        <option value="satisfied">Satisfied</option>
+                        <option value="neutral">Neutral</option>
+                        <option value="dissatisfied">Dissatisfied</option>
+                        <option value="very_dissatisfied">Very Dissatisfied</option>
+                        <option value="na">Not Applicable - I do not use OTAs</option>
+                    </select>
+                </div>
+                 <div class="field" data-field>
+                    <label for="channel_management" class="form-label">Do you currently use a Channel Management Software?</label>
+                    <select id="channel_management" name="channel_management" class="select">
+                        <option value="" disabled selected>Please select an option</option>
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                    </select>
+                </div>
+            </div>
+        </fieldset>
+
+        <!-- Section E: Heritage Preservation & Investment -->
+        <fieldset class="step" aria-describedby="e-desc">
+            <legend class="legend-title">Section E: Heritage Preservation</legend>
+            <p id="e-desc" class="form-hint mb-6">Finally, a few questions about preservation and investment.</p>
+            <div class="space-y-6">
+                <div class="field" data-field>
+                    <label for="preservation_budget" class="form-label">On average, what percentage of your property's annual revenue do you allocate to its ongoing preservation?</label>
+                    <select id="preservation_budget" name="preservation_budget" class="select">
+                        <option value="" disabled selected>Please select a percentage</option>
+                        <option value="<5">Less than 5%</option>
+                        <option value="5-10">5% - 10%</option>
+                        <option value="11-20">11% - 20%</option>
+                        <option value="21-30">21% - 30%</option>
+                        <option value=">30">More than 30%</option>
+                        <option value="unsure">I am unsure</option>
+                    </select>
+                </div>
+                <div class="field" data-field>
+                    <label for="restoration_plans" class="form-label">Are you planning any significant restoration or preservation projects in the next two years?</label>
+                    <select id="restoration_plans" name="restoration_plans" class="select">
+                        <option value="" disabled selected>Please select an option</option>
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                        <option value="considering">I am considering it</option>
+                    </select>
+                </div>
+                <div class="field" data-field>
+                    <label for="preservation_priority" class="form-label">When undertaking preservation work, what is your primary priority?</label>
+                    <select id="preservation_priority" name="preservation_priority" class="select">
+                        <option value="" disabled selected>Please select a priority</option>
+                        <option value="safety">Ensuring structural integrity and safety</option>
+                        <option value="authenticity">Maintaining historical and architectural authenticity</option>
+                        <option value="upgrading">Upgrading amenities for guest comfort whilst respecting the heritage character</option>
+                        <option value="aesthetic">Enhancing the aesthetic and visual appeal of the property</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+            </div>
+        </fieldset>
+
+        <!-- Nav -->
+        <div class="flex items-center justify-between">
+            <button type="button" id="prevBtn" class="btn btn-muted">Previous</button>
+            <div class="flex items-center gap-3">
+            <button type="button" id="nextBtn" class="btn btn-primary">Next</button>
+            <button type="submit" id="submitBtn" class="btn btn-primary hidden">Submit Survey</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Thank you screen -->
+    <section id="thankYou" class="hidden">
+      <div class="section text-center">
+        <h2 class="text-3xl font-bold text-indigo-due mb-4 font-cinzel">Thank You!</h2>
+        <p class="text-gray-700 text-lg mb-6">Your participation is greatly appreciated. The insights you have provided are invaluable to us and will play a crucial role in shaping the future of the heritage community.</p>
+        <p class="text-gray-700 text-lg mb-6">As promised, you will receive early access to the comprehensive survey report and an exclusive invitation to our private webinar to discuss the key findings.</p>
+        <p class="text-gray-600">Warm regards,<br>The Our Heritage Homes Team</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Scripts -->
+  <script>
+    (function () {
+      const steps = Array.from(document.querySelectorAll('.step'));
+      const form = document.getElementById('surveyForm');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const submitBtn = document.getElementById('submitBtn');
+      const progressBar = document.getElementById('progressBar');
+      const progressText = document.getElementById('progressText');
+      const progressPct = document.getElementById('progressPct');
+      const progressSr = document.getElementById('progressSr');
+      const thankYou = document.getElementById('thankYou');
+      const errorSummary = document.getElementById('errorSummary');
+      const errorList = document.getElementById('errorList');
+      const incentivesNotice = document.getElementById('incentivesNotice');
+
+      let current = 0;
+
+      // Enable/disable conditional fields
+      const heritageRadios = form.querySelectorAll('input[name="is_heritage"]');
+      const propertyAge = form.querySelector('#property_age');
+      heritageRadios.forEach(r => r.addEventListener('change', () => {
+        const yes = form.querySelector('input[name="is_heritage"][value="Yes"]').checked;
+        propertyAge.disabled = !yes;
+        if (!yes) { propertyAge.value = ''; }
+      }));
+
+      const toggleWithCheckbox = (checkboxId, inputName) => {
+        const check = document.getElementById(checkboxId);
+        const target = form.querySelector(`input[name="${inputName}"]`);
+        if (!check || !target) return;
+        
+        const sync = () => {
+          target.disabled = !check.checked;
+          if (!check.checked) target.value='';
+        };
+        check.addEventListener('change', sync);
+        sync();
+      };
+      
+      toggleWithCheckbox('promo_other_check', 'promo_message_other');
+      toggleWithCheckbox('target_other_check', 'target_group_other');
+      toggleWithCheckbox('challenge_other_check', 'challenges_other');
+      toggleWithCheckbox('support_other_check', 'support_other');
+      
+      const curatedRadios = form.querySelectorAll('input[name="curated_activities"]');
+      const curatedOtherText = form.querySelector('input[name="curated_activities_other_value"]');
+      if (curatedRadios.length && curatedOtherText) {
+          const syncCurated = () => {
+              const otherSelected = form.querySelector('#curated_activities_other_radio').checked;
+              curatedOtherText.disabled = !otherSelected;
+              if (!otherSelected) curatedOtherText.value = '';
+          };
+          curatedRadios.forEach(radio => radio.addEventListener('change', syncCurated));
+          syncCurated();
+      }
+      
+      const channelInputs = form.querySelectorAll('input[name^="channel_"]');
+      const channelTotalEl = document.getElementById('channelTotal');
+      function updateChannelTotal() {
+        if (!channelTotalEl) return;
+        const total = Array.from(channelInputs).reduce((sum, el) => sum + (parseInt(el.value, 10) || 0), 0);
+        channelTotalEl.textContent = `Current total: ${total}%`;
+      }
+      channelInputs.forEach(el => el.addEventListener('input', updateChannelTotal));
+      updateChannelTotal();
+
+      function withMaxSelections(containerId, max, hintId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+        const hint = document.getElementById(hintId);
+
+        function refresh(){
+          const checked = Array.from(checkboxes).filter(c => c.checked);
+          if (hint) hint.textContent = `${checked.length} of ${max} selected`;
+          const disable = checked.length >= max;
+          checkboxes.forEach(c => { if (!c.checked) c.disabled = disable; });
+        }
+        container.addEventListener('change', refresh);
+        refresh();
+      }
+      withMaxSelections('targetGroup', 3, 'targetHint');
+      withMaxSelections('challengesGroup', 3, 'challengeHint');
+
+      function showStep(index) {
+        steps.forEach((s,i) => s.classList.toggle('active', i === index));
+        prevBtn.classList.toggle('hidden', index === 0);
+        prevBtn.disabled = index === 0;
+        nextBtn.classList.toggle('hidden', index === steps.length - 1);
+        submitBtn.classList.toggle('hidden', index !== steps.length - 1);
+        const pct = Math.round(((index + 1) / steps.length) * 100);
+        progressBar.style.width = pct + '%';
+        progressText.textContent = `Step ${index + 1} of ${steps.length}`;
+        progressPct.textContent = pct + '%';
+        progressSr.textContent = `Step ${index + 1} of ${steps.length} (${pct}%)`;
+        incentivesNotice.classList.toggle('hidden', index !== 0);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      function validateCurrentStep() {
+        if (current !== 0) return true;
+        const step = steps[current];
+        const requiredEls = step.querySelectorAll('[required]');
+        errorList.innerHTML = '';
+        let firstInvalid = null;
+        
+        requiredEls.forEach(el => {
+          el.closest('[data-field]')?.classList.remove('border-red-400');
+          el.removeAttribute('aria-invalid');
+          
+          let isValid = el.checkValidity();
+          if (el.type === 'radio') {
+            const radioGroup = step.querySelectorAll(`input[name="${el.name}"]`);
+            isValid = Array.from(radioGroup).some(r => r.checked);
+          }
+
+          if (!isValid) {
+            el.closest('[data-field]')?.classList.add('border-red-400');
+            el.setAttribute('aria-invalid','true');
+            const label = el.closest('[data-field')?.querySelector('.form-label');
+            const msg = label ? label.textContent.replace(':','').trim() : el.name;
+            const li = document.createElement('li');
+            li.innerHTML = `<a href="#${el.id}" class="hover:underline">${msg} is required.</a>`;
+            errorList.appendChild(li);
+            if (!firstInvalid) firstInvalid = el;
+          }
+        });
+
+        const hasErrors = errorList.childElementCount > 0;
+        errorSummary.classList.toggle('hidden', !hasErrors);
+        if (firstInvalid) firstInvalid.focus();
+        return !hasErrors;
+      }
+
+      nextBtn.addEventListener('click', () => {
+        if (!validateCurrentStep()) return;
+        if (current < steps.length - 1) { current++; showStep(current); }
+      });
+      prevBtn.addEventListener('click', () => { if (current > 0) { current--; showStep(current); } });
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        // --- Data Collection ---
+        const formData = new FormData(form);
+        const data = {};
+        // --- THIS IS THE CORRECTED WEBHOOK URL ---
+        const webhookUrl = 'https://n8n.doheain.com/webhook/c023a780-01b5-497e-ab08-3b8731cbe675';
+
+        for (const [key, value] of formData.entries()) {
+            if (value === '' || value === null) continue;
+
+            if (key.endsWith('[]')) {
+                const cleanKey = key.slice(0, -2);
+                if (!data[cleanKey]) { data[cleanKey] = []; }
+                data[cleanKey].push(value);
+            } else if (key.includes('[')) {
+                const mainKey = key.substring(0, key.indexOf('['));
+                const subKey = key.substring(key.indexOf('[') + 1, key.indexOf(']'));
+                if (!data[mainKey]) { data[mainKey] = {}; }
+                data[mainKey][subKey] = value;
+            } else {
+                data[key] = value;
+            }
+        }
+        
+        // You can open your browser's developer console to see the data being sent
+        console.log("Submitting the following data to webhook:", JSON.stringify(data, null, 2));
+
+        // --- Webhook Submission ---
+        try {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+
+            const response = await fetch(webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+
+            if (!response.ok) {
+                // Log more detailed error information
+                const errorText = await response.text();
+                console.error('Webhook submission failed:', response.status, response.statusText, errorText);
+                alert('There was an error submitting your survey. Please try again later.'); // Optional: Inform user
+            }
+        } catch (error) {
+            console.error('Network error submitting form to webhook:', error);
+            alert('There was a network error submitting your survey. Please check your connection and try again.'); // Optional: Inform user
+        } finally {
+            // --- UI Update ---
+            document.getElementById('surveyRoot').querySelector('header').classList.add('hidden');
+            document.getElementById('surveyRoot').querySelector('form').classList.add('hidden');
+            document.getElementById('surveyRoot').querySelector('[aria-label="Progress"]').classList.add('hidden');
+            document.getElementById('incentivesNotice').classList.add('hidden');
+            errorSummary.classList.add('hidden');
+            thankYou.classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
+
+      showStep(current);
+    })();
+  </script>
+</body>
+</html>
