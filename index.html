@@ -333,6 +333,10 @@
                         <option value="no">No</option>
                     </select>
                 </div>
+                <div class="field hidden" data-field id="channel_management_name_field">
+                    <label for="channel_management_name" class="form-label">If yes, please specify the name of the software:</label>
+                    <input type="text" id="channel_management_name" name="channel_management_name" class="input" placeholder="e.g., SiteMinder, Cloudbeds">
+                </div>
             </div>
         </fieldset>
 
@@ -453,6 +457,24 @@
           };
           curatedRadios.forEach(radio => radio.addEventListener('change', syncCurated));
           syncCurated();
+      }
+
+      const channelManagementSelect = document.getElementById('channel_management');
+      const channelManagementNameField = document.getElementById('channel_management_name_field');
+      if (channelManagementSelect && channelManagementNameField) {
+        const syncChannelManagement = () => {
+            const isYes = channelManagementSelect.value === 'yes';
+            channelManagementNameField.classList.toggle('hidden', !isYes);
+            const input = channelManagementNameField.querySelector('input');
+            if(input) {
+              input.disabled = !isYes;
+              if(!isYes) {
+                input.value = '';
+              }
+            }
+        };
+        channelManagementSelect.addEventListener('change', syncChannelManagement);
+        syncChannelManagement();
       }
       
       const channelInputs = form.querySelectorAll('input[name^="channel_"]');
